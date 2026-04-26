@@ -257,6 +257,7 @@ helm install hccm hcloud/hcloud-cloud-controller-manager \
   -f helm/hccm-values.yaml
 # Install hetzner cloud csi for storage provisioning by hetzner
 helm install hcloud-csi hcloud/hcloud-csi --namespace kube-system
+kubectl get storageclass -A
 ```
 ### Step 9 — Attach Hetzner Volumes + Longhorn Machine Patch
 
@@ -307,15 +308,25 @@ machine:
 talosctl apply-config --nodes 10.30.1.1 --file worker.yaml -p @patches/longhorn/patch-worker1.yaml
 talosctl apply-config --nodes 10.30.1.2 --file worker.yaml -p @patches/longhorn/patch-worker2.yaml
 talosctl apply-config --nodes 10.30.1.3 --file worker.yaml -p @patches/longhorn/patch-worker3.yaml
+# To get mounts and disk details
+talosctl -n 10.30.1.1 get mounts
+talosctl -n 10.30.1.1 get disk
+talosctl -n 10.30.1.1 ls -- /var/lib
 ```
 ![server+volume](Images/server+volume.png)
 
 **Step 10 — Install Longhorn**
 [longhorn-values.yaml](helm/longhorn-values.yaml)
 ```bash
+# Create namespace longhorn-system
+kubectl create namespace longhorn-system
+kubectl label ns longhorn-system \
+  pod-security.kubernetes.io/enforce=privileged \
+  pod-security.kubernetes.io/audit=privileged \
+  pod-security.kubernetes.io/warn=privileged --overwrite
 helm repo add longhorn https://charts.longhorn.io && helm repo update
 helm install longhorn longhorn/longhorn \
-  --namespace longhorn-system --create-namespace \
+  --namespace longhorn-system \
   -f helm/longhorn-values.yaml
 
 ### To access longhorn internaly with vpn connection then use below patch as NodePort
@@ -351,6 +362,8 @@ helm install cert-manager jetstack/cert-manager \
   --namespace cert-manager --create-namespace  \
   -f helm/cert-manager-values.yaml
 ``` 
+---
+
 **### Create ClusterIssuer to issue TLS certificates across the entire cluster**
 
 clusterissuer-staging: [manifests/clusterissuer-staging.yaml](manifests/clusterissuer-staging.yaml)
@@ -360,6 +373,21 @@ clusterissuer-prod: [manifests/clusterissuer-prod.yaml](manifests/clusterissuer-
 kubectl apply -f manifests/clusterissuer-staging.yaml
 kubectl apply -f manifests/clusterissuer-prod.yaml
 ```
+--- 
+
+**### Run manifests###**  
+**1 Before running sample-app create DNS entry for your Load Balancer Public-IP to your domain name app.example.com**  
+```bash
+kubectl apply -f /manifests/sample-app/1-namespace.yaml
+kubectl apply -f manifests/sample-app/2-deployment.yaml
+kubectl apply -f manifests/sample-app/3-svc.yaml
+kubectl apply -f manifests/sample-app/4-ingress.yaml
+kubectl get certificate -A
+kubectl get challenge -A
+kubectl get ingress -A
+```
+![sample-app](Images/sample-app.png)
 ---
 
-## Demo App
+****## 2 Before running sample-app****
+
