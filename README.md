@@ -184,7 +184,6 @@ controlplane.yaml secrets.yaml talosconfig worker.yaml
 hcloud server create --name cp1 --image $TALOS_IMAGE_ID --type cx23 --label 'type=cp' --location hel1 --network $PROJECT_NAME --without-ipv4 --without-ipv6 --user-data-from-file controlplane.yaml
 hcloud server create --name cp2 --image $TALOS_IMAGE_ID --type cx23 --label 'type=cp' --location nbg1 --network $PROJECT_NAME --without-ipv4 --without-ipv6 --user-data-from-file controlplane.yaml
 hcloud server create --name cp3 --image $TALOS_IMAGE_ID --type cx23 --label 'type=cp' --location fsn1 --network $PROJECT_NAME --without-ipv4 --without-ipv6 --user-data-from-file controlplane.yaml
-
 # Create servers for Worker Node on Hetzner cloud with 3 eu location
 hcloud server create --name worker1 --image $TALOS_IMAGE_ID --type cx23 --label 'type=worker' --location hel1 --network $PROJECT_NAME --without-ipv4 --without-ipv6 --user-data-from-file worker.yaml
 hcloud server create --name worker2 --image $TALOS_IMAGE_ID --type cx23 --label 'type=worker' --location nbg1 --network $PROJECT_NAME --without-ipv4 --without-ipv6 --user-data-from-file worker.yaml
@@ -233,12 +232,13 @@ helm repo add cilium https://helm.cilium.io/ && helm repo update
 helm install cilium cilium/cilium \
   --namespace kube-system \
   -f helm/cilium-values.yaml
-# Get kubeconfig
-talosctl kubeconfig
-kubectl get nodes -o wide
-# Verify
+# Verify wireguard encryption status
 kubectl -n kube-system exec -it ds/cilium -- cilium encrypt status
 # Expected: Encryption: Wireguard  Number of peers: 5
+# Get kubeconfig
+talosctl kubeconfig
+# Get controleplane & worker node, Node status become Ready after some time
+kubectl get nodes -o wide
 ```
 ![kubernetes CP & WN](Images/kubectl.png)
 
