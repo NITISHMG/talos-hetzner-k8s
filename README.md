@@ -158,7 +158,9 @@ runcmd:
   - bash /etc/networkd-dispatcher/routable.d/10-eth0-post-up
   - netfilter-persistent save
   - reboot
+```
 # Create NAT VM by below command or use Hetzner Console
+```bash
 hcloud ssh-key list
 hcloud server create --name nat-vm --type cx23 --image  ubuntu-24.04  --user-data-from-file nat-vm-cloud-init.yaml --network $PROJECT_NAME --ssh-key "root@Test" 
 ```
