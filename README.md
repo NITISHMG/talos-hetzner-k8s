@@ -120,6 +120,7 @@ echo "Project Name: $PROJECT_NAME"                 # To check variable and this 
 ```bash
 hcloud network create --name $PROJECT_NAME --ip-range 10.0.0.0/8
 hcloud network add-subnet $PROJECT_NAME --type server --ip-range 10.20.1.0/24 --network-zone eu-central
+hcloud network add-subnet $PROJECT_NAME --type server --ip-range 10.30.0.0/16 --network-zone eu-central
 # Route all egress via OPNsense (already running at 10.20.1.1)
 hcloud network add-route $PROJECT_NAME --destination 0.0.0.0/0 --gateway 10.20.1.1
 ```
@@ -130,48 +131,7 @@ The setup includes floating IP failover, WireGuard VPN, OpenVPN, and HAProxy wit
 Refer to the following link for the complete configuration:
 "https://github.com/NITISHMG/High-Availability-Firewall-on-Hetzner-Cloud-using-OPNsense"**
 ##################################################################################
-> ⚠️ **For Testing**
-> If you are **not using the OPNsense HA setup**, use a **NAT server instead** for outbound connectivity.
-```bash
-# vim nat-vm-cloud-init.yaml
-```
-```bash
-# cloud-config
-package_update: true
-packages:
-  - iptables-persistent
 
-write_files:
-  - path: /etc/networkd-dispatcher/routable.d/10-eth0-post-up
-    permissions: '0755'
-    content: |
-      #!/bin/bash
-      # Enable routing
-      sysctl -w net.ipv4.ip_forward=1
-      sysctl -w net.ipv4.conf.default.rp_filter=0
-      sysctl -w net.ipv4.conf.all.rp_filter=0
-
-      # NAT rule (USE YOUR CLUSTER CIDR)
-      iptables -t nat -C POSTROUTING -s 10.20.0.0/16 -o eth0 -j MASQUERADE 2>/dev/null || \
-      iptables -t nat -A POSTROUTING -s 10.20.0.0/16 -o eth0 -j MASQUERADE
-
-runcmd:
-  - bash /etc/networkd-dispatcher/routable.d/10-eth0-post-up
-  - netfilter-persistent save
-```
-**Create NAT VM by below command or use Hetzner Console**
-```bash
-hcloud ssh-key list
-hcloud server create --name nat-vm --type cx23 --image  ubuntu-24.04  --user-data-from-file nat-vm-cloud-init.yaml --network $PROJECT_NAME --ssh-key "root@Test"
-# To check nat rule is working and persistent ssh root@nat-vm
-iptables -t nat -L -n -v | grep MASQUERADE
-# o/p   0     0 MASQUERADE  0    --  *      eth0    10.20.0.0/16         0.0.0.0/0
-# Also see file created 10-eth0-post-up
-cat /etc/networkd-dispatcher/routable.d/10-eth0-post-up
-
-# create subnet 10.30.0.0/16 for k8s cluster after creating NAT VM
-#hcloud network add-subnet $PROJECT_NAME --type server --ip-range 10.30.0.0/16 --network-zone eu-central
-```
 ### Step 2 — Build Custom Talos Image (Longhorn extensions required)
 ```bash
 # Create schematic with iscsi-tools + util-linux-tools for Longhorn
@@ -215,7 +175,7 @@ talosctl gen config $PROJECT_NAME https://10.30.255.254:6443 \
   --with-examples=false --with-docs=false \
   --force --output .
 ls
-controlplane.yaml secrets.yaml worker.yaml
+controlplane.yaml secrets.yaml talosconfig worker.yaml 
 ```
 ### Step 4 — Create Servers (no public IP)
 
