@@ -1,0 +1,17 @@
+machine:
+  disks:
+    - device: /dev/disk/by-id/scsi-0HC_Volume_<Attached_Volume_1_ID>
+      partitions:
+        - mountpoint: /var/lib/longhorn
+        #filesystem: ext4 or xfs     # talos default to xfs
+  kubelet:
+    extraMounts:
+      - destination: /var/lib/longhorn
+        type: bind
+        source: /var/lib/longhorn
+        options:
+          - bind
+          - rshared
+          - rw
+  sysctls:
+    vm.max_map_count: "262144"   # required for longhorn engine stability

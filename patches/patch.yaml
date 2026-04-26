@@ -1,0 +1,33 @@
+machine:
+  certSANs:
+    - 10.30.255.254
+  install:
+    disk: /dev/sda
+    grubUseUKICmdline: true   # Talos v1.12+ only
+  network:
+    interfaces:
+      - interface: eth0
+        dhcp: true
+        mtu: 1450              # required for Hetzner private network
+        routes:
+          - network: 0.0.0.0/0
+            gateway: 10.0.0.1
+          - network: 10.0.0.1/32
+            # NO gateway field here
+    nameservers:
+      - 1.1.1.1
+      - 8.8.8.8
+  kubelet:
+    nodeIP:
+      validSubnets:
+        - 10.30.0.0/16
+cluster:
+  network:
+    cni:
+      name: none
+    podSubnets:
+      - 172.16.0.0/12
+    serviceSubnets:
+      - 192.168.0.0/16
+  externalCloudProvider:
+    enabled: true

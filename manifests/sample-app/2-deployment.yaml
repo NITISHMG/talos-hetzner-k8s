@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: welcome
+  namespace: application
+  labels:
+    app: welcome
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: welcome
+  template:
+    metadata:
+      labels:
+        app: welcome
+    spec:
+      containers:
+      - name: welcome
+        image: traefik/whoami
+        ports:
+        - containerPort: 80

@@ -1,0 +1,15 @@
+machine:
+  network:
+    interfaces:
+      - interface: eth0
+        dhcp: true
+        mtu: 1450
+        vip:
+          ip: 10.30.255.254
+cluster:
+  proxy:
+    disabled: true
+  allowSchedulingOnControlPlanes: false
+  etcd:
+    advertisedSubnets:
+      - 10.30.0.0/16

@@ -1,0 +1,4 @@
+# hccm values
+networking:
+  enabled: true
+  clusterCIDR: 172.16.0.0/12

@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: welcome
+  namespace: application
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+      #    traefik.ingress.kubernetes.io/router.middlewares: default-redirect-https@kubernetescrd  # you can uncomment this line to redirect to HTTPS
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - "app.example.com"
+      secretName: welcome-letsencrypt  # this name we can select and the same name will populate in the certificate; here it will store secrets
+  rules:
+    - host: "app.example.com"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: welcome
+                port:
+                  number: 9090
