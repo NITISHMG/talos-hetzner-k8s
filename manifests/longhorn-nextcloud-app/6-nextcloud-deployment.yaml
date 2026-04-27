@@ -182,15 +182,15 @@ spec:
                   name: nextcloud-secret
                   key: NEXTCLOUD_ADMIN_PASSWORD
 
-            # Domain — EDIT: replace nextcloud1.example.com with your domain
+            # Domain — EDIT: replace nextcloud.example.com with your domain
             - name: NEXTCLOUD_TRUSTED_DOMAINS
-              value: "nextcloud1.example.com"
+              value: "nextcloud.example.com"
             - name: OVERWRITEPROTOCOL
               value: "https"
             - name: OVERWRITECLIURL
-              value: "https://nextcloud1.example.com"
+              value: "https://nextcloud.example.com"
             - name: OVERWRITEHOST
-              value: "nextcloud1.example.com"
+              value: "nextcloud.example.com"
 
             # PHP limits
             - name: PHP_MEMORY_LIMIT
@@ -224,7 +224,7 @@ spec:
               port: 80
               httpHeaders:
                 - name: Host
-                  value: "nextcloud1.example.com"
+                  value: "nextcloud.example.com"
             initialDelaySeconds: 180
             periodSeconds: 15
             timeoutSeconds: 5
@@ -236,7 +236,7 @@ spec:
               port: 80
               httpHeaders:
                 - name: Host
-                  value: "nextcloud1.example.com"
+                  value: "nextcloud.example.com"
             initialDelaySeconds: 300
             periodSeconds: 30
             timeoutSeconds: 10
