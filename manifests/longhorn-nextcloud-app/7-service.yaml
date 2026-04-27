@@ -1,0 +1,57 @@
+---
+# PostgreSQL Service — Headless for StatefulSet
+# ClusterIP: None → DNS resolves to pod IP directly
+# Accessible as: nextcloud-postgres.nextcloud.svc.cluster.local
+apiVersion: v1
+kind: Service
+metadata:
+  name: nextcloud-postgres
+  namespace: nextcloud
+  labels:
+    app: nextcloud-postgres
+spec:
+  clusterIP: None
+  selector:
+    app: nextcloud-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: postgres
+
+---
+# Redis Service — ClusterIP
+# Accessible as: nextcloud-redis.nextcloud.svc.cluster.local
+apiVersion: v1
+kind: Service
+metadata:
+  name: nextcloud-redis
+  namespace: nextcloud
+  labels:
+    app: nextcloud-redis
+spec:
+  selector:
+    app: nextcloud-redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+      name: redis
+
+---
+# Nextcloud Application Service — ClusterIP
+# Traefik Ingress will route external traffic to this service
+# Accessible as: nextcloud.nextcloud.svc.cluster.local
+apiVersion: v1
+kind: Service
+metadata:
+  name: nextcloud
+  namespace: nextcloud
+  labels:
+    app: nextcloud
+spec:
+  selector:
+    app: nextcloud
+  ports:
+    - port: 80
+      targetPort: 80
+      name: http
+  type: ClusterIP

@@ -1,0 +1,251 @@
+---
+# Redis Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextcloud-redis
+  namespace: nextcloud
+  labels:
+    app: nextcloud-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nextcloud-redis
+  template:
+    metadata:
+      labels:
+        app: nextcloud-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.2-alpine
+          ports:
+            - containerPort: 6379
+              name: redis
+          command:
+            - redis-server
+            - --maxmemory
+            - "256mb"
+            - --maxmemory-policy
+            - allkeys-lru
+            - --requirepass
+            - $(REDIS_PASSWORD)
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nextcloud-secret
+                  key: REDIS_PASSWORD
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+---
+# Nextcloud Application Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextcloud
+  namespace: nextcloud
+  labels:
+    app: nextcloud
+spec:
+  replicas: 1
+  # To scale to 3 replicas later:
+  # 1. Change nextcloud-app-pvc accessMode to RWX in 4-pvc-shared.yaml
+  # 2. Delete and recreate nextcloud-app-pvc
+  # 3. Change replicas to 3 here
+  selector:
+    matchLabels:
+      app: nextcloud
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: nextcloud
+    spec:
+      # fsGroup 33 = www-data — fixes Longhorn RWX volume ownership
+      securityContext:
+        fsGroup: 33
+
+      initContainers:
+        # Fix 1: Set correct permissions on data volume
+        # Longhorn RWX (NFS) mounts as root — Nextcloud needs www-data ownership
+        - name: fix-permissions
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              chown -R 33:33 /var/www/html/data
+              chmod 770 /var/www/html/data
+          volumeMounts:
+            - name: nextcloud-files
+              mountPath: /var/www/html/data
+
+        # Fix 2: Disable chmod check in Nextcloud config
+        # Longhorn RWX uses NFS internally — NFS blocks chmod from containers
+        # This fix runs after Nextcloud installs config.php on first boot
+        - name: fix-config
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              CONFIG=/var/www/html/config/config.php
+              if [ -f "$CONFIG" ]; then
+                # Only add if not already present
+                if ! grep -q "check_data_directory_permissions" "$CONFIG"; then
+                  sed -i "s/);/  'check_data_directory_permissions' => false,\n);/" "$CONFIG"
+                  echo "Config updated."
+                else
+                  echo "Config already patched."
+                fi
+              else
+                echo "config.php not found yet — will be patched on next restart after first install."
+              fi
+          volumeMounts:
+            - name: nextcloud-app
+              mountPath: /var/www/html
+
+      containers:
+        - name: nextcloud
+          image: nextcloud:33-apache
+          ports:
+            - containerPort: 80
+              name: http
+          env:
+            # PostgreSQL
+            - name: POSTGRES_HOST
+              value: "nextcloud-postgres.nextcloud.svc.cluster.local"
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: nextcloud-secret
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: nextcloud-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nextcloud-secret
+                  key: POSTGRES_PASSWORD
+
+            # Redis
+            - name: REDIS_HOST
+              value: "nextcloud-redis.nextcloud.svc.cluster.local"
+            - name: REDIS_HOST_PORT
+              value: "6379"
+            - name: REDIS_HOST_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nextcloud-secret
+                  key: REDIS_PASSWORD
+
+            # Nextcloud Admin — only used on FIRST install
+            # After first install change password via:
+            # kubectl exec -it deploy/nextcloud -n nextcloud -- php occ user:resetpassword admin
+            - name: NEXTCLOUD_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: nextcloud-secret
+                  key: NEXTCLOUD_ADMIN_USER
+            - name: NEXTCLOUD_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nextcloud-secret
+                  key: NEXTCLOUD_ADMIN_PASSWORD
+
+            # Domain — EDIT: replace nextcloud1.example.com with your domain
+            - name: NEXTCLOUD_TRUSTED_DOMAINS
+              value: "nextcloud1.example.com"
+            - name: OVERWRITEPROTOCOL
+              value: "https"
+            - name: OVERWRITECLIURL
+              value: "https://nextcloud1.example.com"
+            - name: OVERWRITEHOST
+              value: "nextcloud1.example.com"
+
+            # PHP limits
+            - name: PHP_MEMORY_LIMIT
+              value: "512M"
+            - name: PHP_UPLOAD_LIMIT
+              value: "10G"
+
+            # Required — Traefik terminates SSL, sends HTTP to pod
+            - name: APACHE_DISABLE_REWRITE_IP
+              value: "1"
+
+          volumeMounts:
+            - name: nextcloud-app
+              mountPath: /var/www/html
+            - name: nextcloud-files
+              mountPath: /var/www/html/data
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+
+          # Increased delays for slow hardware (CX23 2vCPU)
+          # First install takes 5-10 minutes
+          readinessProbe:
+            httpGet:
+              path: /status.php
+              port: 80
+              httpHeaders:
+                - name: Host
+                  value: "nextcloud1.example.com"
+            initialDelaySeconds: 180
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 10
+
+          livenessProbe:
+            httpGet:
+              path: /status.php
+              port: 80
+              httpHeaders:
+                - name: Host
+                  value: "nextcloud1.example.com"
+            initialDelaySeconds: 300
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 10
+
+      volumes:
+        - name: nextcloud-app
+          persistentVolumeClaim:
+            claimName: nextcloud-app-pvc
+        - name: nextcloud-files
+          persistentVolumeClaim:
+            claimName: nextcloud-files-pvc

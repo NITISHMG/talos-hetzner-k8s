@@ -1,0 +1,83 @@
+---
+# PostgreSQL StatefulSet for Nextcloud
+# Uses Longhorn RWO volume
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nextcloud-postgres
+  namespace: nextcloud
+  labels:
+    app: nextcloud-postgres
+spec:
+  serviceName: nextcloud-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nextcloud-postgres
+  template:
+    metadata:
+      labels:
+        app: nextcloud-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: nextcloud-secret
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: nextcloud-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nextcloud-secret
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/18/docker
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql
+              # subPath is REQUIRED for Hetzner Longhorn volumes
+              subPath: pgdata
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - nextcloud
+                - -d
+                - nextcloud
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - nextcloud
+                - -d
+                - nextcloud
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: nextcloud-postgres-pvc

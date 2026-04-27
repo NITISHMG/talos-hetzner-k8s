@@ -1,0 +1,38 @@
+---
+# Nextcloud App Volume — ReadWriteOnce
+# Stores Nextcloud PHP app files, config, themes
+# NOTE: If scaling replicas > 1, this must change to RWX
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nextcloud-app-pvc
+  namespace: nextcloud
+  labels:
+    app: nextcloud
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 2Gi    # set 
+
+---
+# Nextcloud User Files Volume — ReadWriteMany (RWX)
+# Stores all user uploaded files — shared across replicas
+# Longhorn supports RWX via NFS mode — verify your Longhorn version supports it
+# Longhorn v1.5+ supports RWX natively
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nextcloud-files-pvc
+  namespace: nextcloud
+  labels:
+    app: nextcloud
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 2Gi    # set

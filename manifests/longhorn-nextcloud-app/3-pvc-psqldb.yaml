@@ -1,0 +1,18 @@
+---
+# PostgreSQL Data Volume — ReadWriteOnce
+# Longhorn handles replication at block level
+# Change storage size in .env → PVC_DB_SIZE
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nextcloud-postgres-pvc
+  namespace: nextcloud
+  labels:
+    app: nextcloud-postgres
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 2Gi    #Set
