@@ -20,7 +20,7 @@ spec:
 # Ingress — Traefik + cert-manager
 # Prerequisites:
 # 1. cert-manager installed with letsencrypt-prod ClusterIssuer
-# 2. DNS A record: nextcloud1.example.com → Hetzner Load Balancer IP
+# 2. DNS A record: nextcloud.example.com → Hetzner Load Balancer IP
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -35,10 +35,10 @@ spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - "nextcloud1.example.com"
+        - "nextcloud.example.com"
       secretName: nextcloud-tls
   rules:
-    - host: "nextcloud1.example.com"
+    - host: "nextcloud.example.com"
       http:
         paths:
           - path: /
