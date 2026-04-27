@@ -376,7 +376,7 @@ kubectl apply -f manifests/clusterissuer-prod.yaml
 --- 
 
 **### Run manifests###**  
-**1 Before running sample-app create DNS entry for your Load Balancer Public-IP to your domain name app.example.com**  
+**1 Before running sample-app create DNS entry for Load Balancer Public-IP to your domain name app.example.com**  
 ```bash
 kubectl apply -f /manifests/sample-app/1-namespace.yaml
 kubectl apply -f manifests/sample-app/2-deployment.yaml
@@ -386,8 +386,33 @@ kubectl get certificate -A
 kubectl get challenge -A
 kubectl get ingress -A
 ```
+***On browser https://app.example.com***
 ![sample-app](Images/sample-app.png)
 ---
 
-****## 2 Before running sample-app****
+****2 Before running longhorn-nextcloud-app create DNS entry for Load Balancer Public-IP to your domain name nextcloud.example.com****
+``` bash
+kubectl apply -f /manifests/longhorn-app/1-namespace.yaml
+kubectl apply -f /manifests/longhorn-app/2-secrets.yaml
+kubectl apply -f /manifests/longhorn-app/3-pvc-psqldb.yaml
+kubectl apply -f /manifests/longhorn-app/4-pvc-shared.yaml
+kubectl apply -f /manifests/longhorn-app/5-statefulset-psqldb.yaml
+kubectl apply -f /manifests/longhorn-app/6-nextcloud-deployment.yaml
+kubectl apply -f /manifests/longhorn-app/7-service.yaml
+kubectl apply -f /manifests/longhorn-app/8-ingress.yaml
+# Get running pods, svc, ingress
+kubeclt get pods -n nextcloud -o wide
+kubeclt get svc -n nextcloud
+kubectl get pv 
+kubeclt get ingress -n nextcloud
+```
+![longhorn-nextcloud-app](Images/longhorn-nextcloud-app.png)
 
+**### On browser https://nextcloud.example.com You see nextcloud UI**
+
+## Reference
+
+- [OneUptime Blog — Nextcloud on Talos Linux](https://oneuptime.com/blog/post/2026-03-03-set-up-nextcloud-on-talos-linux/view)
+- [Nextcloud Official Docs](https://docs.nextcloud.com/server/latest/admin_manual/) 
+- [Longhorn RWX Documentation](https://longhorn.io/docs)
+- [Talos K8s on Hetzner](https://docs.siderolabs.com/talos/v1.12/platform-specific-installations/cloud-platforms/hetzner)
