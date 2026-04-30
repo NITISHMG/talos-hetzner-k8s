@@ -67,7 +67,6 @@ Pod → OPNsense NAT → Floating IP → Internet
 | Kubernetes   | v1.35.2 | Container orchestration 
 | Cilium       | v1.19.2 | CNI + WireGuard pod/node encryption 
 | Hetzner CCM  | v1.30.x | Cloud LB, node routes, node labels 
-| Hetzner CSI  | latest  | Auto-provision Hetzner volumes via PVC 
 | Longhorn     | v1.7.x  | Distributed block storage with UI 
 | Traefik      | v3.x    | Ingress + auto Hetzner LB creation
 | cert-manager | v1.20.x | Automatic SSL via Let's Encrypt
@@ -242,7 +241,7 @@ kubectl get nodes -o wide
 ```
 ![kubernetes CP & WN](Images/kubectl.png)
 
-### Step 8 — Install Hetzner CCM + CSI
+### Step 8 — Install Hetzner CCM
 [hccm-values.yaml](helm/hccm-values.yaml)
 ```bash
 kubectl create secret generic hcloud \
@@ -255,9 +254,6 @@ helm repo add hcloud https://charts.hetzner.cloud && helm repo update
 helm install hccm hcloud/hcloud-cloud-controller-manager \
   --namespace kube-system \
   -f helm/hccm-values.yaml
-# Install hetzner cloud csi for storage provisioning by hetzner
-helm install hcloud-csi hcloud/hcloud-csi --namespace kube-system
-kubectl get storageclass -A
 ```
 ### Step 9 — Attach Hetzner Volumes + Longhorn Machine Patch
 
