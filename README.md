@@ -79,8 +79,8 @@ Pod → OPNsense NAT → Floating IP → Internet
 | Infra VMs       | `10.20.0.0/16`     | OPNsense, jumphost, monitoring VMs
 | K8s nodes       | `10.30.0.0/16`     | Control planes + worker nodes
 | K8s VIP         | `10.30.255.254/32` | Control plane virtual IP (Hetzner Alias ip)
-| Pod network     | `10.31.0.0/16`     | Cilium-managed pod IPs
-| Service network | `10.32.0.0/16`     | ClusterIP services
+| Pod network     | `172.16.0.0/12`     | Cilium-managed pod IPs
+| Service network | `192.168.0.0/16`     | ClusterIP services
 | WireGuard VPN   | `172.16.11.0/24`   | Admin laptop VPN tunnel
 
 ---
