@@ -412,3 +412,9 @@ kubeclt get ingress -n nextcloud
 - [Nextcloud Official Docs](https://docs.nextcloud.com/server/latest/admin_manual/) 
 - [Longhorn RWX Documentation](https://longhorn.io/docs)
 - [Talos K8s on Hetzner](https://docs.siderolabs.com/talos/v1.12/platform-specific-installations/cloud-platforms/hetzner)
+
+## ⚠️ Known Limitations
+
+- **Route instability**: Hetzner private network custom routes may become unstable during rapid autoscaling
+- **Node limit**: Practical limit of ~100 nodes/load-balancers, which may not suit very large clusters
+- **Dedicated servers**: Custom routes are currently not fully compatible with Hetzner dedicated servers (vSwitch limitation)
